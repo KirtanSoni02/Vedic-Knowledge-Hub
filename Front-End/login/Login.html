@@ -276,7 +276,7 @@
                         emailError.textContent = 'Email exists';
                         emailInput.classList.add('error');
                         throw new Error('Email exists');
-                    }
+                    } 
                     throw new Error(errorData.message || 'Registration failed');
                 }
 
