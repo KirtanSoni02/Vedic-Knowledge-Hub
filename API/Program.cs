@@ -48,6 +48,6 @@ var app = builder.Build();
  app.UseStaticFiles(); 
 app.UseHttpsRedirection();
 app.MapControllers();
-
+app.MapGet("/", () => "Hello World!");
 app.UseCors("AllowAll");
 app.Run();
