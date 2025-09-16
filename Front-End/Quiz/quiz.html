@@ -40,27 +40,34 @@
       };
     </script>
     <style>
-      :where([class^="ri-"])::before { content: "\f3c2"; }
+      :where([class^="ri-"])::before {
+        content: "\f3c2";
+      }
       .option-card:hover {
-          transform: translateY(-2px);
-          transition: all 0.3s ease;
+        transform: translateY(-2px);
+        transition: all 0.3s ease;
       }
       .option-card.selected {
-          border-color: #4F46E5;
-          background-color: rgba(79, 70, 229, 0.1);
+        border-color: #4f46e5;
+        background-color: rgba(79, 70, 229, 0.1);
       }
       .option-card.correct {
-          border-color: #10B981;
-          background-color: rgba(16, 185, 129, 0.1);
+        border-color: #10b981;
+        background-color: rgba(16, 185, 129, 0.1);
       }
       .option-card.incorrect {
-          border-color: #EF4444;
-          background-color: rgba(239, 68, 68, 0.1);
+        border-color: #ef4444;
+        background-color: rgba(239, 68, 68, 0.1);
       }
     </style>
   </head>
-  <div id="loading" class="fixed inset-0 bg-white flex items-center justify-center">
-    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+  <div
+    id="loading"
+    class="fixed inset-0 bg-white flex items-center justify-center"
+  >
+    <div
+      class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"
+    ></div>
   </div>
   <body class="bg-gray-50 min-h-screen">
     <nav class="bg-white shadow-sm">
@@ -76,7 +83,7 @@
                 class="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium"
                 >Home</a
               >
-              
+
               <a
                 href="../Dashboard/user.html"
                 class="text-gray-900 hover:text-primary px-3 py-2 text-sm font-medium"
@@ -223,135 +230,148 @@
     </div>
 
     <script>
-        <!-- Add this loading indicator before </body> -->
+     
 
-        
+      let quizData = [];
+      const topic = localStorage.getItem("quizTopic");
+      const userId = localStorage.getItem("userId");
 
-let quizData = [];
-const topic = localStorage.getItem('quizTopic');
-const userId = localStorage.getItem('userId');
+      async function fetchQuizQuestions() {
+        try {
+          // const response = await fetch(
+          //   "https://openrouter.ai/api/v1/chat/completions",
+          //   {
+          //     method: "POST",
+          //     headers: {
+          //       "Content-Type": "application/json",
+          //       Authorization:
+          //         "Bearer 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",
+          //     },
+          //     body: JSON.stringify({
+          //       model: "deepseek/deepseek-r1:free",
+          //       messages: [
+          //         {
+          //           role: "user",
+          //           content: `Generate 10 technical quiz questions about ${topic} in JSON format. Follow this exact structure:
+          // [{
+          //   "question": "string",
+          //   "options": ["string","string","string","string"],
+          //   "correct": 0-3,
+          //   "hint": "string"
+          // }]`,
+          //         },
+          //       ],
+          //       temperature: 0.7,
+          //     }),
+          //   }
+          // );
 
+          const response = await fetch("http://localhost:5002/api/quiz/generate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(topic),
+          });
+          if (!response.ok) throw new Error("API request failed");
+          const data = await response.json();
+          const content = data.content;
+          const match = content.match(/\[\s*{[\s\S]*}\s*\]/);
+          quizData = JSON.parse(match[0]).map((q) => ({
+            ...q,
+            userAnswer: null,
+          }));
+        } catch (error) {
+          console.error("Error fetching questions:", error);
+          alert("Failed to load questions. Please try again.");
+          // location.reload();
+        }
+      }
 
-async function fetchQuizQuestions() {
-  try {
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer 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',
-    },
-      body: JSON.stringify({
-        model: 'deepseek/deepseek-r1:free',
-        messages: [{
-          role: 'user',
-          content: `Generate 10 technical quiz questions about ${topic} in JSON format. Follow this exact structure:
-          [{
-            "question": "string",
-            "options": ["string","string","string","string"],
-            "correct": 0-3,
-            "hint": "string"
-          }]`
-        }],
-        temperature: 0.7
-      })
-    });
+      async function initQuiz() {
+        document.getElementById("loading").style.display = "flex";
 
-    if (!response.ok) throw new Error('API request failed');
-    
-    const data = await response.json();
-    const content = data.choices[0].message.content;
-    quizData = JSON.parse(content.match(/\[.*\]/s)[0]).map(q => ({
-  ...q,
-  userAnswer: null // Track user's answer
-}));
+        await fetchQuizQuestions();
 
-  } catch (error) {
-    console.error('Error fetching questions:', error);
-    alert('Failed to load questions. Please try again.');
-    location.reload();
-  }
-}
+        document.getElementById("loading").style.display = "none";
+        document.getElementById("totalQuestions").textContent = quizData.length;
+        updateQuestion();
+        startTimer();
+        setupEventListeners();
+      }
 
-async function initQuiz() {
-  document.getElementById('loading').style.display = 'flex';
-  
-  await fetchQuizQuestions();
-  
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('totalQuestions').textContent = quizData.length;
-  updateQuestion();
-  startTimer();
-  setupEventListeners();
-}
+      // Update the selectOption function to handle dynamic questions
+      function selectOption(selectedIndex) {
+        if (quizData[currentQuestionIndex].userAnswer !== null) return;
 
-// Update the selectOption function to handle dynamic questions
-function selectOption(selectedIndex) {
-  if (quizData[currentQuestionIndex].userAnswer !== null) return;
-  
-  const options = document.querySelectorAll('.option-card');
-  const correctIndex = quizData[currentQuestionIndex].correct;
-  quizData[currentQuestionIndex].userAnswer = selectedIndex;
+        const options = document.querySelectorAll(".option-card");
+        const correctIndex = quizData[currentQuestionIndex].correct;
+        quizData[currentQuestionIndex].userAnswer = selectedIndex;
 
-  options.forEach((option, index) => {
-    option.classList.remove('bg-amber-100', 'border-amber-300');
-    if (index === correctIndex) {
-      option.classList.add('bg-green-100', 'border-green-300');
-    }
-    if (index === selectedIndex && index !== correctIndex) {
-      option.classList.add('bg-red-100', 'border-red-300');
-    }
-    option.style.cursor = 'not-allowed';
-  });if (selectedIndex === correctIndex) {
-    score++;
-    document.getElementById('score').textContent = score;
-  }
-}
-
+        options.forEach((option, index) => {
+          option.classList.remove("bg-amber-100", "border-amber-300");
+          if (index === correctIndex) {
+            option.classList.add("bg-green-100", "border-green-300");
+          }
+          if (index === selectedIndex && index !== correctIndex) {
+            option.classList.add("bg-red-100", "border-red-300");
+          }
+          option.style.cursor = "not-allowed";
+        });
+        if (selectedIndex === correctIndex) {
+          score++;
+          document.getElementById("score").textContent = score;
+        }
+      }
 
       let currentQuestionIndex = 0;
       let score = 0;
       let timeLeft = 300;
       let timer;
       let selectedOptionIndex = -1;
-     
+
       function updateQuestion() {
-  const question = quizData[currentQuestionIndex];
-  document.body.style.cursor = 'default';
-  document.getElementById("questionText").textContent = question.question;
-  document.getElementById("currentQuestion").textContent = currentQuestionIndex + 1;
-  document.getElementById("totalQuestions").textContent = quizData.length;
-  document.getElementById("progressBar").style.width =
-    `${((currentQuestionIndex + 1) / quizData.length) * 100}%`;
+        const question = quizData[currentQuestionIndex];
+        document.body.style.cursor = "default";
+        document.getElementById("questionText").textContent = question.question;
+        document.getElementById("currentQuestion").textContent =
+          currentQuestionIndex + 1;
+        document.getElementById("totalQuestions").textContent = quizData.length;
+        document.getElementById("progressBar").style.width = `${
+          ((currentQuestionIndex + 1) / quizData.length) * 100
+        }%`;
 
-  const optionCards = document.querySelectorAll(".option-card");
-  optionCards.forEach((card, index) => {
-    card.querySelector("p").textContent = question.options[index];
-    card.className = "option-card border-2 rounded-lg p-4 ";
-    
-    // Reset styles and cursor
-    card.classList.remove('bg-green-100', 'border-green-300', 'bg-red-100', 'border-red-300');
-    card.style.cursor = 'pointer';
-    
-    // Add hover effect only if not answered
-    if (question.userAnswer === null) {
-      card.classList.add('cursor-pointer', 'hover:border-primary');
-    } else {
-      card.classList.remove('cursor-pointer', 'hover:border-primary');
-      card.style.cursor = 'not-allowed';
-    }
+        const optionCards = document.querySelectorAll(".option-card");
+        optionCards.forEach((card, index) => {
+          card.querySelector("p").textContent = question.options[index];
+          card.className = "option-card border-2 rounded-lg p-4 ";
 
-    // Show existing answers if present
-    if (question.userAnswer !== null) {
-      if (index === question.correct) {
-        card.classList.add('bg-green-100', 'border-green-300');
+          // Reset styles and cursor
+          card.classList.remove(
+            "bg-green-100",
+            "border-green-300",
+            "bg-red-100",
+            "border-red-300"
+          );
+          card.style.cursor = "pointer";
+
+          // Add hover effect only if not answered
+          if (question.userAnswer === null) {
+            card.classList.add("cursor-pointer", "hover:border-primary");
+          } else {
+            card.classList.remove("cursor-pointer", "hover:border-primary");
+            card.style.cursor = "not-allowed";
+          }
+
+          // Show existing answers if present
+          if (question.userAnswer !== null) {
+            if (index === question.correct) {
+              card.classList.add("bg-green-100", "border-green-300");
+            }
+            if (index === question.userAnswer && index !== question.correct) {
+              card.classList.add("bg-red-100", "border-red-300");
+            }
+          }
+        });
       }
-      if (index === question.userAnswer && index !== question.correct) {
-        card.classList.add('bg-red-100', 'border-red-300');
-      }
-    }
-  });
-}
-
 
       function setupEventListeners() {
         document.querySelectorAll(".option-card").forEach((card, index) => {
@@ -361,22 +381,25 @@ function selectOption(selectedIndex) {
         document
           .getElementById("prevButton")
           .addEventListener("click", previousQuestion);
-        document.getElementById("nextButton").addEventListener("click", nextQuestion);
-        document.getElementById("hintButton").addEventListener("click", showHint);
+        document
+          .getElementById("nextButton")
+          .addEventListener("click", nextQuestion);
+        document
+          .getElementById("hintButton")
+          .addEventListener("click", showHint);
         document
           .getElementById("flagQuestion")
           .addEventListener("click", flagQuestion);
       }
-
-   
 
       function startTimer() {
         timer = setInterval(() => {
           timeLeft--;
           const minutes = Math.floor(timeLeft / 60);
           const seconds = timeLeft % 60;
-          document.getElementById("timer").textContent =
-            `${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+          document.getElementById("timer").textContent = `${minutes
+            .toString()
+            .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
 
           if (timeLeft <= 0) {
             clearInterval(timer);
@@ -385,52 +408,53 @@ function selectOption(selectedIndex) {
         }, 1000);
       }
       function nextQuestion() {
-  if (currentQuestionIndex < quizData.length - 1) {
-    currentQuestionIndex++;
-    updateQuestion();
-  } else {
-    clearInterval(timer);
-    showResults();
-  }
-}
+        if (currentQuestionIndex < quizData.length - 1) {
+          currentQuestionIndex++;
+          updateQuestion();
+        } else {
+          clearInterval(timer);
+          showResults();
+        }
+      }
 
-function previousQuestion() {
-  if (currentQuestionIndex > 0) {
-    currentQuestionIndex--;
-    updateQuestion();
-  }
-}
+      function previousQuestion() {
+        if (currentQuestionIndex > 0) {
+          currentQuestionIndex--;
+          updateQuestion();
+        }
+      }
       function showResults() {
         document.getElementById("resultModal").classList.remove("hidden");
-        updateDatabase("QuizMaster",topic,score);
+        updateDatabase("QuizMaster", topic, score);
         document.getElementById("finalScore").textContent = score;
       }
 
-
-
       async function updateDatabase(s, t, sc) {
-            try {
-                const response = await fetch(`https://localhost:5002/api/progress/quiz-attempt`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-User-Id': userId
-                    },
-                    body: JSON.stringify({
-                      ServiceName: s,
-                      TopicName: t,
-                      Score: sc
-                    })
-                });
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.message || 'Quiz update failed');
-                }
-                } catch (error) {
-                console.error('Error recording progress:', error);
-                alert('Failed to save Quiz.');
+        try {
+          const response = await fetch(
+            `http://localhost:5002/api/progress/quiz-attempt`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-User-Id": userId,
+              },
+              body: JSON.stringify({
+                ServiceName: s,
+                TopicName: t,
+                Score: sc,
+              }),
             }
+          );
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || "Quiz update failed");
+          }
+        } catch (error) {
+          console.error("Error recording progress:", error);
+          alert("Failed to save Quiz.");
         }
+      }
 
       function retryQuiz() {
         currentQuestionIndex = 0;
@@ -468,9 +492,9 @@ function previousQuestion() {
           });
         }
       }
-        function Homepage(){
-          window.location.href='../Dashboard/dashboard.html'
-        }
+      function Homepage() {
+        window.location.href = "../Dashboard/dashboard.html";
+      }
       initQuiz();
     </script>
   </body>

@@ -97,7 +97,6 @@ public async Task<IActionResult> UpdateVedaSubtype([FromBody] VedaSubtypeUpdateR
 }
 
 
-
 }
 
 public class VedaSubtypeUpdateRequest
@@ -130,3 +129,8 @@ public class ProgressUpdateDto
     public string CourseName { get; set; }
     public int MinutesPracticed { get; set; }
 }
+
+public class QuizRequest
+    {
+        public string Topic { get; set; } = string.Empty;
+    }
