@@ -2,7 +2,7 @@
 
 A **personalized learning platform for Indian scriptures** that provides structured access to Vedas, Upanishads, Puranas, and other ancient texts. The platform enhances learning through **personalized content delivery, interactive multimedia, progress tracking, and AI-powered Q&A**.
 
-🌐 **Live Website:** [Visit Vedic Hub](https://yogeshsuthar1234.github.io/Sanskrit_Vedangna/Front-End/login/Login.html)
+🌐 **Live Website:** [Visit Vedic Hub](https://kirtansoni02.github.io/Vedic-Knowledge-Hub/Front-End/login/Login.html)
 
 ---
 
